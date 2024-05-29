@@ -30,6 +30,7 @@ import (
 	"github.com/ethereum/go-ethereum/eth/ethconfig"
 	"github.com/ethereum/go-ethereum/eth/filters"
 	"github.com/ethereum/go-ethereum/ethclient"
+	"github.com/ethereum/go-ethereum/ethclient/gethclient"
 	"github.com/ethereum/go-ethereum/node"
 	"github.com/ethereum/go-ethereum/p2p"
 	"github.com/ethereum/go-ethereum/params"
@@ -63,9 +64,10 @@ type simClient struct {
 // Backend is a simulated blockchain. You can use it to test your contracts or
 // other code that interacts with the Ethereum chain.
 type Backend struct {
-	node   *node.Node
-	beacon *catalyst.SimulatedBeacon
-	client simClient
+	node       *node.Node
+	beacon     *catalyst.SimulatedBeacon
+	client     simClient
+	gethclient *gethclient.Client // Added by Oasys
 }
 
 // NewBackend creates a new simulated blockchain that can be used as a backend for
@@ -130,9 +132,10 @@ func newWithNode(stack *node.Node, conf *eth.Config, blockPeriod uint64) (*Backe
 		return nil, err
 	}
 	return &Backend{
-		node:   stack,
-		beacon: beacon,
-		client: simClient{ethclient.NewClient(stack.Attach())},
+		node:       stack,
+		beacon:     beacon,
+		client:     simClient{ethclient.NewClient(stack.Attach())},
+		gethclient: gethclient.New(stack.Attach()),
 	}, nil
 }
 
@@ -190,4 +193,14 @@ func (n *Backend) AdjustTime(adjustment time.Duration) error {
 // Client returns a client that accesses the simulated chain.
 func (n *Backend) Client() Client {
 	return n.client
+}
+
+// Oasys: GethClient returns a gethclient that accesses the simulated chain.
+func (n *Backend) GethClient() *gethclient.Client {
+	return n.gethclient
+}
+
+// Oasys: Blockchain returns the simulated chain.
+func (n *Backend) Blockchain() *core.BlockChain {
+	return n.beacon.Ethereum().BlockChain()
 }
